@@ -1,4 +1,3 @@
-
 CREATE TABLE offices (
   officeCode varchar(10) NOT NULL,
   city varchar(50) NOT NULL,
@@ -555,6 +554,8 @@ insert  into orders(orderNumber,orderDate,requiredDate,shippedDate,status,commen
 (10183,'2003-11-13','2003-11-22','2003-11-15','Shipped','We need to keep in close contact with their Marketing VP. He is the decision maker for all their purchases.',339),
 
 (10184,'2003-11-14','2003-11-22','2003-11-20','Shipped',NULL,484),
+
+(10259, '2025-09-16', '2025-09-23', 'In Process', 103),
 
 (10185,'2003-11-14','2003-11-21','2003-11-20','Shipped',NULL,320),
 

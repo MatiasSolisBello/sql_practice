@@ -1,77 +1,113 @@
--- Lista todas las oficinas que tienen más de 5 empleados. 
+-- 1.- Lista todas las oficinas que tienen más de 5 empleados. 
 -- Muestra el officeCode, la ciudad y el total de empleados.
 select o.officecode, o.city, COUNT(*) as "total"
 from offices o
 INNER JOIN employees e ON o.officecode=e.officecode
-group by o.officecode;
+group by o.officecode
+having COUNT(*) >= 5;
 
 
---Obtén los clientes que nunca han hecho un pedido. Muestra el customerName y la country.
-select customername, country, salesrepemployeenumber from customers
-where salesrepemployeenumber is null;
+
+-- 2.- Obtén los clientes que nunca han hecho un pedido. 
+-- Muestra el customerName y la country.
+select c.customername, c.country
+from customers c
+left join orders o on c.customernumber = o.customernumber
+where o.ordernumber is null;
 
 
--- Encuentra los 3 productos más vendidos (por cantidad pedida) y 
+
+-- 3.- Encuentra los 3 productos más vendidos (por cantidad pedida) y 
 -- muestra su productName junto al total de unidades vendidas.
-select * from orders o; 
-
-
-select p.productname 
+select p.productname, sum(od.quantityordered) as total_vendido
 from products p
-INNER JOIN orderdetails od ON od.productcode=p.productcode;
+join orderdetails od on p.productcode = od.productcode
+group by p.productname
+order by total_vendido desc
+limit 3;
 
 
 
---Lista los pedidos que tenían una requiredDate anterior al shippedDate. 
--- Muestra orderNumber, customerName y los días de retraso.
-select o.ordernumber, o.requireddate, o.shippeddate, c.customername
+-- 4.- Lista los pedidos que tenían una requiredDate anterior al shippedDate. 
+-- Muestra orderNumber, customerName y los días de retraso. DATEDIFF
+select o.ordernumber, c.customername,
+o.shippeddate - o.requireddate as "dias de retraso"
 from orders o
 INNER JOIN customers c ON o.customernumber=c.customernumber
 where o.requireddate < o.shippeddate;
 
 
---Calcula el monto total de ventas (quantityOrdered * priceEach) 
+
+-- 5.- Calcula el monto total de ventas (quantityOrdered * priceEach) 
 -- agrupado por country del cliente. Ordena de mayor a menor.
-select * from orderdetails;
+select
+ROUND(SUM(od.quantityOrdered * od.priceEach)) as "total", 
+c.country
+from orderdetails od
+join orders o on o.ordernumber = od.ordernumber
+join customers c on c.customernumber = o.customernumber
+group by c.country
+order by total DESC;
 
 
--- Encuentra los clientes que han gastado más de 100.000 USD en total en pedidos. 
+
+-- 6.- Encuentra los clientes que han gastado más de 
+-- 100.000 USD en total en pedidos. 
 -- Devuelve customerName, total gastado y país.
-select * payments;
+select c.customername as "customer name", 
+ROUND(SUM(quantityOrdered * priceEach), 2) as "total_gastado", 
+c.country
+from customers c
+join orders o on c.customernumber = o.customernumber
+join orderdetails od on o.ordernumber = od.ordernumber
+where ROUND(quantityOrdered * priceEach) >= 100000
+group by c.customername, c.country
+having sum(od.quantityOrdered * od.priceEach) > 100000
+order by total_gastado desc;
 
 
--- Muestra el nombre completo de cada empleado junto con el nombre completo 
+
+-- 7.- Muestra el nombre completo de cada empleado junto con el nombre completo 
 -- de su jefe (reportsTo). Si no tiene jefe, indícalo como “CEO”.
 select 
-	e.firstname|| ' ' ||e.lastname as empleado, 
-	coalesce(m.firstname|| ' ' ||m.lastname, 'CEO') as jefe
+	concat(e.firstname, ' ', e.lastname) as empleado,
+	coalesce(concat(m.firstname, ' ', m.lastname), 'CEO') as jefe
 from employees e
-left join employees m on e.reportsto = m.employeenumber;;
+left join employees m on e.reportsto = m.employeenumber;
 
 
 
--- Lista todos los productos cuyo quantityInStock es menor que el promedio de 
--- stock de su línea (productLine).
-select productname, quantityinstock, productline
-from products;
+-- 8.- Lista todos los productos cuyo quantityInStock es menor que 
+-- el promedio de stock de su línea (productLine).
+select p.productName, p.productLine, p.quantityInStock, t.promedio
+from products p
+join (
+    select productLine, avg(quantityInStock) as promedio
+    from products
+    group by productLine
+) t on p.productLine = t.productLine
+where p.quantityInStock < t.promedio;
 
 
--- Devuelve para cada oficina cuántos clientes están asociados a los 
+
+-- 9.- Devuelve para cada oficina cuántos clientes están asociados a los 
 -- empleados de esa oficina.
+select o.city, COUNT(*) as "clientes asociados"
+from offices o
+INNER JOIN employees e ON o.officecode=e.officecode
+INNER JOIN customers c ON c.salesrepemployeenumber=e.employeenumber
+group by o.city
 
 
--- Encuentra el pedido con el valor total más alto y 
+
+-- 10.- Encuentra el pedido con el valor total más alto y 
 -- devuelve orderNumber, customerName y el total calculado.
-select * from orders;
-
-select * from orderdetails;
-
-select * from products where productcode='S12_1666';
-
-select * from payments;
-
-insert  into orderdetails(
-orderNumber,productCode,quantityOrdered,priceEach,orderLineNumber) values 
-(10102,'S18_1342',39,95.55,2);
-
+select o.orderNumber, c.customerName,
+       sum(od.quantityOrdered * od.priceEach) as total_gastado
+from orderdetails od
+join orders o on o.orderNumber = od.orderNumber
+join customers c on c.customerNumber = o.customerNumber
+group by o.orderNumber, c.customerName
+order by total_gastado desc
+limit 1;
 
