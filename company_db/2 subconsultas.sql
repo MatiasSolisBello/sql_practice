@@ -165,13 +165,161 @@
 -- Encuentra los empleados que tienen asignados más clientes que el 
 -- promedio de clientes asignados por empleado.   
 
-    -- promedio de clientes asignados por empleado:
+    -- Cuenta los clientes agrupados por n° de empleado
+    select 
+    	salesRepEmployeeNumber as empleado_numero, 
+    	COUNT(*) as clientes 
+    from customers
+    where salesRepEmployeeNumber is not null
+	group by salesRepEmployeeNumber
+	
+	select * from customers c where salesRepEmployeeNumber = 1501
+	
+	
+	-- promedio de clientes asignados por empleado:
+	select round(avg(clientes)) as promedio
+	from (
+		select 
+    	salesRepEmployeeNumber as empleado_numero, 
+	    	COUNT(*) as clientes 
+	    from customers
+	    where salesRepEmployeeNumber is not null
+		group by salesRepEmployeeNumber
+	) as promedio_table;
+	
+	
+	-- SOLUCION N° 7
+	select 
+		e.employeenumber as numero_empleado,
+		concat(e.firstName,' ',e.lastName) as nombre_empleado,
+		COUNT(*) as clientes
+	from employees e
+	join customers c on e.employeeNumber = c.salesRepEmployeeNumber 
+	group by salesRepEmployeeNumber
+	having clientes >= (
+		select round(avg(clientes)) as promedio
+		from (
+			select 
+	    	salesRepEmployeeNumber as empleado_numero, 
+		    	COUNT(*) as clientes 
+		    from customers
+		    where salesRepEmployeeNumber is not null
+			group by salesRepEmployeeNumber
+		) as promedio_table
+	) order by clientes desc;
     
     
     
     
+-- 8.- Clientes con pedidos en varios años
+-- Lista los clientes que han hecho pedidos en más de un año distinto, 
+-- usando una subconsulta que cuente los años.   
+    
+	-- Conteo de años agrupado por numero de cliente
+	select 
+		customernumber as numero_cliente,
+		COUNT(DISTINCT YEAR(o.orderDate)) as num_años
+	from orders o
+	group by numero_cliente
+	order by numero_cliente
+	
+	-- SOLUCION N° 8
+	select
+		t.numero_cliente,
+		concat(c.contactFirstName,' ',c.contactLastName) as nombre,
+		t.num_años
+	from (
+	    select 
+	    	o.customernumber as numero_cliente, 
+	    	COUNT(DISTINCT YEAR(o.orderDate)) as num_años
+	    from orders o
+	    group by numero_cliente
+		order by numero_cliente
+	) as t
+	join customers c on t.numero_cliente = c.customerNumber
+	where num_años > 1
+	order by num_años desc
+
     
     
-    
-    
+-- 9.- Pedidos con más productos que el promedio
+-- Muestra los pedidos que tienen más líneas en orderdetails que el 
+-- promedio de líneas de todos los pedidos.	
+	
+	-- Conteo de lineas agrupados por numero de pedido
+	select 
+		ordernumber as numero_pedido, 
+		count(*) as conteo 
+	from orderdetails o
+	group by ordernumber
+	
+	-- testing
+	select * from orderdetails where orderNumber = 10287
+	
+	-- promedio de líneas de todos los pedidos
+	select round(avg(conteo)) as promedio
+	from (
+		select 
+			ordernumber as numero_pedido, 
+			count(*) as conteo 
+		from orderdetails o
+		group by ordernumber
+	) as t;
+	
+	
+	-- SOLUCION N°  9
+	select 
+		ordernumber as numero_pedido, 
+		o.priceEach, o.quantityOrdered,
+		o.priceEach * o.quantityOrdered as precio,
+		count(*) as conteo 
+	from orderdetails o
+	group by ordernumber
+	having conteo >= (
+		select round(avg(conteo)) as promedio
+		from (
+			select 
+				ordernumber as numero_pedido, 
+				count(*) as conteo 
+			from orderdetails o
+			group by ordernumber
+		) as t
+	) order by conteo desc;
+	
+	
+	
+-- 10.- Clientes que compraron lo mismo que otro cliente
+-- Encuentra los clientes que han comprado al menos un producto que 
+-- también compró el cliente “Atelier graphique”, usando IN con subconsulta.
+	
+	-- 
+	select * from customers c where c.customerName = 'Atelier graphique'
+	
+	select * from orders where customerNumber = 103
+	
+	select o.productCode from orderdetails o 
+	where o.orderNumber in (10123, 10298, 10345)
+	
+	
+	select * from orderdetails o
+	where o.productCode in (
+		select o.productCode from orderdetails o 
+		where o.orderNumber in (10123, 10298, 10345)
+	)
+	
+	select distinct c.customerName
+	from customers c
+	join orders o on c.customerNumber = o.customerNumber
+	join orderdetails od on o.orderNumber = od.orderNumber
+	where od.productCode in (
+	    select distinct od2.productCode
+	    from customers c2
+	    join orders o2 on c2.customerNumber = o2.customerNumber
+	    join orderdetails od2 on o2.orderNumber = od2.orderNumber
+	    where c2.customerName = 'Atelier graphique'
+	)
+	and c.customerName <> 'Atelier graphique';
+	
+	
+	
     
